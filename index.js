@@ -4,11 +4,13 @@ const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const moment = require("moment");
+const cors = require("cors");
 
 const app = express();
 const PORT = 3000;
 const JWT_SECRET = "your_jwt_secret_key";
 
+app.use(cors());
 // MongoDB connection
 mongoose
     .connect(
@@ -260,8 +262,8 @@ app.get("/api/v1/financial-summary", authenticateToken, async (req, res) => {
 });
 
 // Protected route example
-app.get("/dashboard", authenticateToken, (req, res) => {
-    res.json({ message: `Welcome, ${req.user.email}` });
+app.get("/", (req, res) => {
+    res.json({ message: `Expense server running` });
 });
 
 app.listen(PORT, () => {
