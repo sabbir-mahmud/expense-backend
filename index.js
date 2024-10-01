@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const moment = require("moment");
 const cors = require("cors");
+require("datejs");
 
 const app = express();
 const PORT = 3000;
@@ -208,57 +209,61 @@ app.delete("/api/v1/expense/:id", authenticateToken, async (req, res) => {
 
 // API to get financial summary
 app.get("/api/v1/financial-summary", authenticateToken, async (req, res) => {
-    try {
-        const startOfMonth = moment().startOf("month").toDate();
-        const endOfMonth = moment().endOf("month").toDate();
+    // try {
+    var fd = Date.today().clearTime().moveToFirstDayOfMonth();
+    var startOfMonth = fd.toString("yyyy-MM-dd");
 
-        // Fetch all expenses for the user
-        const expenses = await Expense.find({ user: req.user.id });
+    var ld = Date.today().clearTime().moveToLastDayOfMonth();
+    var endOfMonth = ld.toString("yyyy-MM-dd");
 
-        // Calculate totals
-        const totalEarn = expenses
-            .filter((expense) => expense.type === "earn")
-            .reduce((sum, expense) => sum + expense.amount, 0);
+    console.log("line 218", startOfMonth);
+    console.log(endOfMonth);
 
-        const totalExpense = expenses
-            .filter((expense) => expense.type === "expense")
-            .reduce((sum, expense) => sum + expense.amount, 0);
+    // Fetch all expenses for the user
+    const expenses = await Expense.find({ user: req.user.id });
+    const thisMonthExpenses = await Expense.find({
+        user: req.user.id,
+        date: {
+            $gte: startOfMonth, // Greater than or equal to startOfMonth
+            $lte: endOfMonth, // Less than or equal to endOfMonth
+        },
+    });
 
-        // Calculate this month's totals
-        const thisMonthEarn = expenses
-            .filter(
-                (expense) =>
-                    expense.type === "earn" &&
-                    expense.date >= startOfMonth &&
-                    expense.date <= endOfMonth
-            )
-            .reduce((sum, expense) => sum + expense.amount, 0);
+    // Calculate totals
+    const totalEarn = expenses
+        .filter((expense) => expense.type === "earn")
+        .reduce((sum, expense) => sum + expense.amount, 0);
 
-        const thisMonthExpense = expenses
-            .filter(
-                (expense) =>
-                    expense.type === "expense" &&
-                    expense.date >= startOfMonth &&
-                    expense.date <= endOfMonth
-            )
-            .reduce((sum, expense) => sum + expense.amount, 0);
+    const totalExpense = expenses
+        .filter((expense) => expense.type === "expense")
+        .reduce((sum, expense) => sum + expense.amount, 0);
 
-        // Calculate balance (totalEarn - totalExpense)
-        const balance = totalEarn - totalExpense;
+    // Calculate this month's totals
 
-        res.json({
-            totalEarn,
-            totalExpense,
-            thisMonthEarn,
-            thisMonthExpense,
-            balance,
-        });
-    } catch (err) {
-        res.status(500).json({
-            message: "Error calculating financial summary",
-            error: err,
-        });
-    }
+    const thisMonthEarn = thisMonthExpenses
+        .filter((expense) => expense.type === "earn")
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+    const thisMonthExpense = thisMonthExpenses
+        .filter((expense) => expense.type === "expense")
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Calculate balance (totalEarn - totalExpense)
+    const balance = totalEarn - totalExpense;
+
+    res.json({
+        totalEarn,
+        totalExpense,
+        thisMonthEarn,
+        thisMonthExpense,
+        balance,
+    });
+    // } catch (err) {
+    //     res.status(500).json({
+    //         message: "Error calculating financial summary",
+    //         error: err,
+    //     });
+    // }
 });
 
 // Protected route example
